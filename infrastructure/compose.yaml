@@ -1,0 +1,46 @@
+name: cineflow-dev
+
+services:
+  postgres:
+    image: postgres:16.4-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-cineflow}
+      POSTGRES_USER: ${POSTGRES_USER:-cineflow}
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in your shell before starting Compose}"
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks: [data]
+    security_opt: [no-new-privileges:true]
+
+  redis:
+    image: redis:7.4.1-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks: [data]
+    security_opt: [no-new-privileges:true]
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  data:
+    internal: true
